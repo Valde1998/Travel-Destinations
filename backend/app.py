@@ -2,15 +2,33 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import os
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///travel.db'
+# Database konfiguration
+database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:password@mariadb:3306/travel_db')
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 3600,
+}
+
 db = SQLAlchemy(app)
 
+# ------------------- DATABASE MODELLER -------------------
+class User(db.Model):
+    __tablename__ = 'user'  # Explicit table name
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+    destinations = db.relationship('TravelDestination', backref='user', lazy=True)
+
 class TravelDestination(db.Model):
+    __tablename__ = 'travel_destination'  # Explicit table name
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
@@ -21,15 +39,38 @@ class TravelDestination(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    destinations = db.relationship('TravelDestination', backref='user', lazy=True)
+# ------------------- DATABASE INITIALIZERING -------------------
+def init_db():
+    """Opretter tabeller med retry hvis databasen ikke er klar"""
+    max_retries = 5
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            with app.app_context():
+                db.create_all()
+                print("✅ Database tabeller oprettet/verificeret!")
+                
+                # Tjek om tabellerne faktisk findes
+                inspector = db.inspect(db.engine)
+                tables = inspector.get_table_names()
+                print(f"📊 Tabeller i databasen: {tables}")
+                
+                return True
+        except Exception as e:
+            retry_count += 1
+            print(f"⚠️ Forsøg {retry_count}/{max_retries} fejlede: {e}")
+            if retry_count < max_retries:
+                print("⏳ Venter 3 sekunder før nyt forsøg...")
+                time.sleep(3)
+            else:
+                print("❌ Kunne ikke oprette tabeller efter 5 forsøg")
+                return False
 
-with app.app_context():
-    db.create_all()
+# Kør database initialisering
+init_db()
 
+# ------------------- ALLE RUTER -------------------
 @app.route('/destinations', methods=['GET'])
 def get_destinations():
     destinations = TravelDestination.query.all()
@@ -153,4 +194,4 @@ def login():
         return jsonify({'error': 'Invalid username or password'}), 401
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
