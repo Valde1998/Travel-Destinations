@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Destination</title>
+</head>
+<body>
+<h1>Create Destination</h1>
+
+<form id="createForm">
+    <input type="text" name="title" placeholder="Title" required><br>
+    <input type="text" name="country" placeholder="Country"><br>
+    <textarea name="description" placeholder="Description"></textarea><br>
+    <input type="date" name="date_from"><br>
+    <input type="date" name="date_to"><br>
+    <button type="submit">Create</button>
+</form>
+
+<script>
+    document.getElementById("createForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const data = {
+            title: e.target.title.value,
+            country: e.target.country.value,
+            description: e.target.description.value,
+            date_from: e.target.date_from.value,
+            date_to: e.target.date_to.value
+        };
+
+        fetch("http://127.0.0.1:5000/destinations", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(() => window.location = "index.html");
+    });
+</script>
+
+</body>
+</html>

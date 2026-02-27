@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Destination</title>
+</head>
+<body>
+<h1>Edit Destination</h1>
+
+<form id="editForm"></form>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+
+    fetch(`http://127.0.0.1:5000/destinations`)
+        .then(res => res.json())
+        .then(data => {
+            const dest = data.find(d => d.id == id);
+
+            document.getElementById("editForm").innerHTML = `
+            <input type="text" name="title" value="${dest.title}" required><br>
+            <input type="text" name="country" value="${dest.country}"><br>
+            <textarea name="description">${dest.description}</textarea><br>
+            <input type="date" name="date_from" value="${dest.date_from}"><br>
+            <input type="date" name="date_to" value="${dest.date_to}"><br>
+            <button type="submit">Save</button>
+        `;
+        });
+
+    document.getElementById("editForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const data = {
+            title: e.target.title.value,
+            country: e.target.country.value,
+            description: e.target.description.value,
+            date_from: e.target.date_from.value,
+            date_to: e.target.date_to.value
+        };
+
+        fetch(`http://127.0.0.1:5000/destinations/${id}`, {
+            method: "PUT",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(data)
+        })
+            .then(() => window.location = "index.html");
+    });
+</script>
+</body>
+</html>
