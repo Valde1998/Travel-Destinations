@@ -1,16 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="da">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Destinations</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <nav>
+        <div class="nav-container">
+            <h1>Travel Destinations</h1>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn">Log ind</a>
+                <a href="signup.html" class="btn">Opret bruger</a>
+            </div>
+            <div id="user-info" style="display: none;">
+                <span id="username"></span>
+                <button onclick="logout()" class="btn">Log ud</button>
+            </div>
+        </div>
+    </nav>
 
-<h1>My Travel Destinations</h1>
-<a href="create.html">Create New</a>
+    <main>
+        <div class="container">
+            <div class="header">
+                <h2>Mine rejsedestinationer</h2>
+                <a href="create.html" class="btn btn-primary">+ Tilføj ny destination</a>
+            </div>
+            
+            <div id="destinations-list" class="destinations-grid">
+                <!-- Her indsættes destinationer dynamisk -->
+            </div>
+        </div>
+    </main>
 
-<div id="destinations"></div>
-
-<script src="script.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/list.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opret destination</title>
+    <title>Rediger destination</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,9 +16,11 @@
 
     <main>
         <div class="container">
-            <h2>Opret ny destination</h2>
+            <h2 id="form-title">Rediger destination</h2>
             
             <form id="destination-form" class="form">
+                <input type="hidden" id="destination-id">
+
                 <div class="form-group">
                     <label for="title">Titel *</label>
                     <input type="text" id="title" name="title" required>
@@ -55,7 +57,8 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Gem destination</button>
+                    <button type="submit" class="btn btn-primary">Opdater destination</button>
+                    <button type="button" id="delete-btn" class="btn btn-danger" style="display: none;">Slet</button>
                     <a href="index.html" class="btn">Annuller</a>
                 </div>
             </form>
@@ -64,6 +67,6 @@
 
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/create.js"></script>
+    <script src="js/destination.js"></script>
 </body>
 </html>

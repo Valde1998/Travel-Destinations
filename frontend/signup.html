@@ -1,29 +1,51 @@
 <!DOCTYPE html>
-<html>
-<head><title>Sign Up</title></head>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opret bruger</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
 <body>
-<h1>Sign Up</h1>
+    <nav>
+        <div class="nav-container">
+            <h1>Travel Destinations</h1>
+            <a href="index.html" class="btn">Tilbage</a>
+        </div>
+    </nav>
 
-<form id="signupForm">
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button>Sign Up</button>
-</form>
+    <main>
+        <div class="container">
+            <div class="auth-container">
+                <h2>Opret bruger</h2>
+                
+                <form id="signup-form" class="form">
+                    <div class="form-group">
+                        <label for="username">Brugernavn</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
 
-<script>
-    document.getElementById("signupForm").addEventListener("submit", function(e) {
-        e.preventDefault();
+                    <div class="form-group">
+                        <label for="password">Adgangskode</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
 
-        fetch("http://127.0.0.1:5000/signup", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({
-                username: e.target.username.value,
-                password: e.target.password.value
-            })
-        })
-            .then(() => window.location = "login.html");
-    });
-</script>
+                    <div class="form-group">
+                        <label for="confirm-password">Bekræft adgangskode</label>
+                        <input type="password" id="confirm-password" name="confirm-password" required>
+                    </div>
+
+                    <div id="signup-error" class="error" style="display: none;"></div>
+
+                    <button type="submit" class="btn btn-primary">Opret bruger</button>
+                </form>
+
+                <p>Har du allerede en bruger? <a href="login.html">Log ind her</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
