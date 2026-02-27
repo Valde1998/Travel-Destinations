@@ -12,6 +12,7 @@ function loadDestinations() {
                     <div>
                         <h3>${d.title}</h3>
                         <p>${d.country}</p>
+                        <button onclick="window.location='edit.html?id=${d.id}'">Edit</button>
                         <button onclick="deleteDestination(${d.id})">Delete</button>
                     </div>
                 `;
