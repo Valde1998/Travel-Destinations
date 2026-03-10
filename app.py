@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
+from flask_bcrypt import Bcrypt
 from datetime import datetime
 import os
 import time
@@ -12,6 +13,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 CORS(app)
 Session(app)
+bcrypt = Bcrypt(app)
 
 database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:password@mariadb:3306/travel_db')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -22,8 +24,18 @@ class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    destinations = db.relationship('TravelDestination', backref='user', lazy=True)
+    password_hash = db.Column(db.String(128), nullable=False)
+    
+    @property
+    def password(self):
+        raise AttributeError('password not readable')
+    
+    @password.setter
+    def password(self, plain_password):
+        self.password_hash = bcrypt.generate_password_hash(plain_password).decode('utf-8')
+    
+    def verify_password(self, plain_password):
+        return bcrypt.check_password_hash(self.password_hash, plain_password)
 
 class TravelDestination(db.Model):
     __tablename__ = 'travel_destination'
@@ -38,15 +50,14 @@ class TravelDestination(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 def init_db():
-    max_retries = 5
-    for i in range(max_retries):
+    for i in range(5):
         try:
             with app.app_context():
                 db.create_all()
                 print("Database tabeller oprettet")
                 return
         except Exception as e:
-            print(f"Forsøg {i+1}/{max_retries} fejlede: {e}")
+            print(f"Forsøg {i+1}/5 fejlede: {e}")
             time.sleep(3)
 
 init_db()
@@ -165,7 +176,7 @@ def signup():
 def login():
     data = request.json
     user = User.query.filter_by(username=data.get('username')).first()
-    if user and user.password == data.get('password'):
+    if user and user.verify_password(data.get('password')):
         session['user_id'] = user.id
         session['username'] = user.username
         return jsonify({'message': 'Login successful', 'user_id': user.id, 'username': user.username})
