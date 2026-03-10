@@ -1,66 +1,39 @@
-document.addEventListener('DOMContentLoaded', async function() {
-    await loadDestinations();
-    updateAuthUI();
-});
+document.addEventListener('DOMContentLoaded', loadDestinations);
 
 async function loadDestinations() {
-    const listElement = document.getElementById('destinations-list');
-    
+    const list = document.getElementById('destinations-list');
     try {
-        listElement.innerHTML = '<div class="loading">Henter destinationer...</div>';
-        
-        const destinations = await getDestinations();
-        
-        if (destinations.length === 0) {
-            listElement.innerHTML = '<p>Ingen destinationer endnu. Tilføj din første destination!</p>';
+        list.innerHTML = '<div class="loading">Henter...</div>';
+        const dests = await getDestinations();
+        if (dests.length === 0) {
+            list.innerHTML = '<p>Ingen destinationer endnu.</p>';
             return;
         }
-        
-        listElement.innerHTML = destinations.map(dest => `
-            <div class="destination-card" data-id="${dest.id}">
-                <h3>${dest.title}</h3>
-                <p><strong>Land:</strong> ${dest.country || 'Ikke angivet'}</p>
-                <p><strong>Lokation:</strong> ${dest.location || 'Ikke angivet'}</p>
-                <p><strong>Periode:</strong> ${formatDate(dest.date_from)} - ${formatDate(dest.date_to)}</p>
+        list.innerHTML = dests.map(d => `
+            <div class="destination-card" data-id="${d.id}">
+                <h3>${d.title}</h3>
+                <p><strong>Land:</strong> ${d.country || 'Ikke angivet'}</p>
+                <p><strong>Lokation:</strong> ${d.location || 'Ikke angivet'}</p>
+                <p><strong>Periode:</strong> ${formatDate(d.date_from)} - ${formatDate(d.date_to)}</p>
                 <div class="card-actions">
-                    <a href="destination.html?id=${dest.id}" class="btn">Se detaljer</a>
-                    ${isLoggedIn() ? `
-                        <button onclick="deleteFromList(${dest.id})" class="btn btn-danger">Slet</button>
-                    ` : ''}
+                    <a href="/destination/${d.id}" class="btn">Detaljer</a>
+                    ${isLoggedIn() ? `<button onclick="deleteFromList(${d.id})" class="btn btn-danger">Slet</button>` : ''}
                 </div>
             </div>
         `).join('');
-        
     } catch (error) {
-        listElement.innerHTML = `<p class="error">Fejl: ${error.message}</p>`;
+        list.innerHTML = `<p class="error">Fejl: ${error.message}</p>`;
     }
 }
 
-function formatDate(dateString) {
-    if (!dateString) return 'Ikke angivet';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('da-DK');
-}
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('da-DK') : 'Ikke angivet'; }
 
 async function deleteFromList(id) {
-    if (!confirm('Er du sikker på at du vil slette denne destination?')) {
-        return;
-    }
-    
+    if (!confirm('Slet destination?')) return;
     try {
         await deleteDestination(id);
-        // Fjern kortet fra DOM uden at genindlæse siden
-        const card = document.querySelector(`.destination-card[data-id="${id}"]`);
-        if (card) {
-            card.remove();
-        }
-        
-        // Tjek om listen nu er tom
-        const listElement = document.getElementById('destinations-list');
-        if (listElement.children.length === 0) {
-            listElement.innerHTML = '<p>Ingen destinationer endnu. Tilføj din første destination!</p>';
-        }
+        document.querySelector(`.destination-card[data-id="${id}"]`).remove();
     } catch (error) {
-        alert('Fejl ved sletning: ' + error.message);
+        alert('Fejl: ' + error.message);
     }
 }

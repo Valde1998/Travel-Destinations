@@ -4,48 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Opret bruger</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav>
         <div class="nav-container">
             <h1>Travel Destinations</h1>
-            <a href="index.html" class="btn">Tilbage</a>
+            <a href="{{ url_for('index') }}" class="btn">Tilbage</a>
         </div>
     </nav>
-
     <main>
         <div class="container">
             <div class="auth-container">
                 <h2>Opret bruger</h2>
-                
                 <form id="signup-form" class="form">
                     <div class="form-group">
                         <label for="username">Brugernavn</label>
                         <input type="text" id="username" name="username" required>
                     </div>
-
                     <div class="form-group">
                         <label for="password">Adgangskode</label>
                         <input type="password" id="password" name="password" required>
                     </div>
-
                     <div class="form-group">
                         <label for="confirm-password">Bekræft adgangskode</label>
                         <input type="password" id="confirm-password" name="confirm-password" required>
                     </div>
-
                     <div id="signup-error" class="error" style="display: none;"></div>
-
                     <button type="submit" class="btn btn-primary">Opret bruger</button>
                 </form>
-
-                <p>Har du allerede en bruger? <a href="login.html">Log ind her</a></p>
+                <p>Har du allerede en bruger? <a href="{{ url_for('login_page') }}">Log ind her</a></p>
             </div>
         </div>
     </main>
-
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

@@ -1,34 +1,32 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session
 from datetime import datetime
 import os
 import time
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'din-hemmelige-nogle-her-skift-den'
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
 CORS(app)
+Session(app)
 
-# Database konfiguration
 database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:password@mariadb:3306/travel_db')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 3600,
-}
-
 db = SQLAlchemy(app)
 
-# ------------------- DATABASE MODELLER -------------------
 class User(db.Model):
-    __tablename__ = 'user'  # Explicit table name
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     destinations = db.relationship('TravelDestination', backref='user', lazy=True)
 
 class TravelDestination(db.Model):
-    __tablename__ = 'travel_destination'  # Explicit table name
+    __tablename__ = 'travel_destination'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
@@ -39,159 +37,144 @@ class TravelDestination(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
-# ------------------- DATABASE INITIALIZERING -------------------
 def init_db():
-    """Opretter tabeller med retry hvis databasen ikke er klar"""
     max_retries = 5
-    retry_count = 0
-    
-    while retry_count < max_retries:
+    for i in range(max_retries):
         try:
             with app.app_context():
                 db.create_all()
-                print("✅ Database tabeller oprettet/verificeret!")
-                
-                # Tjek om tabellerne faktisk findes
-                inspector = db.inspect(db.engine)
-                tables = inspector.get_table_names()
-                print(f"📊 Tabeller i databasen: {tables}")
-                
-                return True
+                print("Database tabeller oprettet")
+                return
         except Exception as e:
-            retry_count += 1
-            print(f"⚠️ Forsøg {retry_count}/{max_retries} fejlede: {e}")
-            if retry_count < max_retries:
-                print("⏳ Venter 3 sekunder før nyt forsøg...")
-                time.sleep(3)
-            else:
-                print("❌ Kunne ikke oprette tabeller efter 5 forsøg")
-                return False
+            print(f"Forsøg {i+1}/{max_retries} fejlede: {e}")
+            time.sleep(3)
 
-# Kør database initialisering
 init_db()
 
-# ------------------- ALLE RUTER -------------------
-@app.route('/destinations', methods=['GET'])
-def get_destinations():
-    destinations = TravelDestination.query.all()
-    return jsonify([{
-        'id': d.id,
-        'title': d.title,
-        'location': d.location,
-        'country': d.country,
-        'date_from': d.date_from,
-        'date_to': d.date_to
-    } for d in destinations])
+@app.route('/')
+def index():
+    return render_template('index.html', logged_in='user_id' in session)
 
-@app.route('/destinations/<int:id>', methods=['GET'])
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/signup')
+def signup_page():
+    return render_template('signup.html')
+
+@app.route('/create')
+def create_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('create.html', logged_in=True)
+
+@app.route('/destination/<int:id>')
+def destination_page(id):
+    return render_template('destination.html', logged_in='user_id' in session)
+
+@app.route('/api/destinations', methods=['GET'])
+def get_destinations():
+    dests = TravelDestination.query.all()
+    return jsonify([{
+        'id': d.id, 'title': d.title, 'location': d.location,
+        'country': d.country, 'date_from': d.date_from, 'date_to': d.date_to
+    } for d in dests])
+
+@app.route('/api/destinations/<int:id>', methods=['GET'])
 def get_destination(id):
-    dest = TravelDestination.query.get_or_404(id)
+    d = TravelDestination.query.get_or_404(id)
     return jsonify({
-        'id': dest.id,
-        'title': dest.title,
-        'description': dest.description,
-        'location': dest.location,
-        'country': dest.country,
-        'date_from': dest.date_from,
-        'date_to': dest.date_to
+        'id': d.id, 'title': d.title, 'description': d.description,
+        'location': d.location, 'country': d.country,
+        'date_from': d.date_from, 'date_to': d.date_to
     })
 
-@app.route('/destinations', methods=['POST'])
+@app.route('/api/destinations', methods=['POST'])
 def create_destination():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
     data = request.json
-    
     if not data.get('title'):
         return jsonify({'error': 'Title is required'}), 400
-    
-    dest = TravelDestination(
-        title=data['title'],
-        description=data.get('description', ''),
-        location=data.get('location', ''),
-        country=data.get('country', ''),
-        date_from=data.get('date_from'),
-        date_to=data.get('date_to')
+    d = TravelDestination(
+        title=data['title'], description=data.get('description',''),
+        location=data.get('location',''), country=data.get('country',''),
+        date_from=data.get('date_from'), date_to=data.get('date_to'),
+        user_id=session['user_id']
     )
-    
     try:
-        db.session.add(dest)
+        db.session.add(d)
         db.session.commit()
-        return jsonify({'message': 'Destination created successfully!', 'id': dest.id}), 201
+        return jsonify({'message': 'Created', 'id': d.id}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/destinations/<int:id>', methods=['PUT'])
+@app.route('/api/destinations/<int:id>', methods=['PUT'])
 def update_destination(id):
-    dest = TravelDestination.query.get_or_404(id)
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    d = TravelDestination.query.get_or_404(id)
     data = request.json
-    
     if not data.get('title'):
         return jsonify({'error': 'Title is required'}), 400
-    
-    dest.title = data.get('title', dest.title)
-    dest.description = data.get('description', dest.description)
-    dest.location = data.get('location', dest.location)
-    dest.country = data.get('country', dest.country)
-    dest.date_from = data.get('date_from', dest.date_from)
-    dest.date_to = data.get('date_to', dest.date_to)
-    
+    d.title = data.get('title', d.title)
+    d.description = data.get('description', d.description)
+    d.location = data.get('location', d.location)
+    d.country = data.get('country', d.country)
+    d.date_from = data.get('date_from', d.date_from)
+    d.date_to = data.get('date_to', d.date_to)
     try:
         db.session.commit()
-        return jsonify({'message': 'Destination updated successfully!'})
+        return jsonify({'message': 'Updated'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/destinations/<int:id>', methods=['DELETE'])
+@app.route('/api/destinations/<int:id>', methods=['DELETE'])
 def delete_destination(id):
-    dest = TravelDestination.query.get_or_404(id)
-    
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    d = TravelDestination.query.get_or_404(id)
     try:
-        db.session.delete(dest)
+        db.session.delete(d)
         db.session.commit()
-        return jsonify({'message': 'Destination deleted successfully!'})
+        return jsonify({'message': 'Deleted'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 def signup():
     data = request.json
-    
     if not data.get('username') or not data.get('password'):
         return jsonify({'error': 'Username and password required'}), 400
-    
-    existing_user = User.query.filter_by(username=data['username']).first()
-    if existing_user:
-        return jsonify({'error': 'Username already exists'}), 400
-    
-    user = User(
-        username=data['username'],
-        password=data['password']
-    )
-    
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username exists'}), 400
+    user = User(username=data['username'], password=data['password'])
     try:
         db.session.add(user)
         db.session.commit()
-        return jsonify({'message': 'User created successfully!', 'user_id': user.id}), 201
+        return jsonify({'message': 'User created'}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-    
     user = User.query.filter_by(username=data.get('username')).first()
-    
     if user and user.password == data.get('password'):
-        return jsonify({
-            'message': 'Login successful',
-            'user_id': user.id,
-            'username': user.username
-        })
-    else:
-        return jsonify({'error': 'Invalid username or password'}), 401
+        session['user_id'] = user.id
+        session['username'] = user.username
+        return jsonify({'message': 'Login successful', 'user_id': user.id, 'username': user.username})
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,120 +1,60 @@
-let currentDestinationId = null;
-
-document.addEventListener('DOMContentLoaded', async function() {
-    updateAuthUI();
-    
-    // Hent ID fra URL
-    const urlParams = new URLSearchParams(window.location.search);
-    currentDestinationId = urlParams.get('id');
-    
-    if (!currentDestinationId) {
-        alert('Ingen destination valgt');
-        window.location.href = 'index.html';
-        return;
-    }
-    
+document.addEventListener('DOMContentLoaded', async () => {
     await loadDestination();
-    
-    // Vis slet-knap kun for loggede ind brugere
-    const deleteBtn = document.getElementById('delete-btn');
     if (isLoggedIn()) {
-        deleteBtn.style.display = 'inline-block';
-        deleteBtn.addEventListener('click', confirmDelete);
+        document.getElementById('delete-btn')?.addEventListener('click', confirmDelete);
     }
-    
-    // Form submission
-    const form = document.getElementById('destination-form');
-    form.addEventListener('submit', handleUpdate);
+    document.getElementById('destination-form').addEventListener('submit', handleUpdate);
 });
 
 async function loadDestination() {
     try {
-        const dest = await getDestination(currentDestinationId);
-        
-        // Udfyld formular
-        document.getElementById('destination-id').value = dest.id;
-        document.getElementById('title').value = dest.title || '';
-        document.getElementById('description').value = dest.description || '';
-        document.getElementById('location').value = dest.location || '';
-        document.getElementById('country').value = dest.country || '';
-        document.getElementById('date_from').value = dest.date_from || '';
-        document.getElementById('date_to').value = dest.date_to || '';
-        
-        document.getElementById('form-title').textContent = `Rediger: ${dest.title}`;
-        
+        const d = await getDestination(window.destinationId);
+        document.getElementById('destination-id').value = d.id;
+        document.getElementById('title').value = d.title || '';
+        document.getElementById('description').value = d.description || '';
+        document.getElementById('location').value = d.location || '';
+        document.getElementById('country').value = d.country || '';
+        document.getElementById('date_from').value = d.date_from || '';
+        document.getElementById('date_to').value = d.date_to || '';
+        document.getElementById('form-title').textContent = `Rediger: ${d.title}`;
     } catch (error) {
-        alert('Fejl ved indlæsning: ' + error.message);
-        window.location.href = 'index.html';
+        alert('Fejl: ' + error.message);
+        window.location.href = '/';
     }
 }
 
-async function handleUpdate(event) {
-    event.preventDefault();
-    clearErrors();
-    
+async function handleUpdate(e) {
+    e.preventDefault();
     const title = document.getElementById('title').value.trim();
-    const dateFrom = document.getElementById('date_from').value;
-    const dateTo = document.getElementById('date_to').value;
-    
-    // Validering
-    let isValid = true;
-    
     if (!title) {
-        showError('title', 'Titel er påkrævet');
-        isValid = false;
+        document.getElementById('title-error').textContent = 'Titel er påkrævet';
+        return;
     }
-    
-    if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-        showError('date_to', 'Slutdato skal være efter startdato');
-        isValid = false;
-    }
-    
-    if (!isValid) return;
-    
+    const data = {
+        title: title,
+        description: document.getElementById('description').value.trim(),
+        location: document.getElementById('location').value.trim(),
+        country: document.getElementById('country').value.trim(),
+        date_from: document.getElementById('date_from').value || null,
+        date_to: document.getElementById('date_to').value || null
+    };
     try {
-        const destinationData = {
-            title: title,
-            description: document.getElementById('description').value.trim(),
-            location: document.getElementById('location').value.trim(),
-            country: document.getElementById('country').value.trim(),
-            date_from: dateFrom || null,
-            date_to: dateTo || null
-        };
-        
-        await updateDestination(currentDestinationId, destinationData);
-        alert('Destination opdateret!');
-        window.location.href = `destination.html?id=${currentDestinationId}`;
-        
+        await updateDestination(window.destinationId, data);
+        window.location.href = `/destination/${window.destinationId}`;
     } catch (error) {
         alert('Fejl: ' + error.message);
     }
 }
 
 function confirmDelete() {
-    if (confirm('Er du sikker på at du vil slette denne destination?')) {
-        handleDelete();
-    }
+    if (confirm('Slet destination?')) handleDelete();
 }
 
 async function handleDelete() {
     try {
-        await deleteDestination(currentDestinationId);
-        alert('Destination slettet!');
-        window.location.href = 'index.html';
+        await deleteDestination(window.destinationId);
+        window.location.href = '/';
     } catch (error) {
-        alert('Fejl ved sletning: ' + error.message);
+        alert('Fejl: ' + error.message);
     }
-}
-
-function showError(fieldId, message) {
-    const errorElement = document.getElementById(`${fieldId}-error`);
-    if (errorElement) {
-        errorElement.textContent = message;
-    }
-}
-
-function clearErrors() {
-    document.querySelectorAll('.error').forEach(el => {
-        el.textContent = '';
-    });
 }

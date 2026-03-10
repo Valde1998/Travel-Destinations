@@ -1,66 +1,24 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('destination-form');
-    
-    // Tjek om bruger er logget ind
-    updateAuthUI();
-    
-    // Frontend validering
-    form.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        
-        // Ryd tidligere fejl
-        clearErrors();
-        
-        // Hent værdier
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('destination-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
         const title = document.getElementById('title').value.trim();
-        const dateFrom = document.getElementById('date_from').value;
-        const dateTo = document.getElementById('date_to').value;
-        
-        // Validering
-        let isValid = true;
-        
         if (!title) {
-            showError('title', 'Titel er påkrævet');
-            isValid = false;
+            document.getElementById('title-error').textContent = 'Titel er påkrævet';
+            return;
         }
-        
-        if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-            showError('date_to', 'Slutdato skal være efter startdato');
-            isValid = false;
-        }
-        
-        if (!isValid) return;
-        
-        // Opret destination
+        const data = {
+            title: title,
+            description: document.getElementById('description').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            country: document.getElementById('country').value.trim(),
+            date_from: document.getElementById('date_from').value || null,
+            date_to: document.getElementById('date_to').value || null
+        };
         try {
-            const destinationData = {
-                title: title,
-                description: document.getElementById('description').value.trim(),
-                location: document.getElementById('location').value.trim(),
-                country: document.getElementById('country').value.trim(),
-                date_from: dateFrom || null,
-                date_to: dateTo || null
-            };
-            
-            const result = await createDestination(destinationData);
-            alert('Destination oprettet!');
-            window.location.href = `destination.html?id=${result.id}`;
-            
+            const result = await createDestination(data);
+            window.location.href = `/destination/${result.id}`;
         } catch (error) {
             alert('Fejl: ' + error.message);
         }
     });
 });
-
-function showError(fieldId, message) {
-    const errorElement = document.getElementById(`${fieldId}-error`);
-    if (errorElement) {
-        errorElement.textContent = message;
-    }
-}
-
-function clearErrors() {
-    document.querySelectorAll('.error').forEach(el => {
-        el.textContent = '';
-    });
-}

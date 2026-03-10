@@ -4,69 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rediger destination</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav>
         <div class="nav-container">
             <h1>Travel Destinations</h1>
-            <a href="index.html" class="btn">Tilbage til liste</a>
+            <a href="{{ url_for('index') }}" class="btn">Tilbage</a>
         </div>
     </nav>
-
     <main>
         <div class="container">
             <h2 id="form-title">Rediger destination</h2>
-            
             <form id="destination-form" class="form">
                 <input type="hidden" id="destination-id">
-
                 <div class="form-group">
                     <label for="title">Titel *</label>
                     <input type="text" id="title" name="title" required>
                     <small class="error" id="title-error"></small>
                 </div>
-
                 <div class="form-group">
                     <label for="description">Beskrivelse</label>
                     <textarea id="description" name="description" rows="4"></textarea>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label for="location">Lokation</label>
                         <input type="text" id="location" name="location">
                     </div>
-
                     <div class="form-group">
                         <label for="country">Land</label>
                         <input type="text" id="country" name="country">
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label for="date_from">Fra dato</label>
                         <input type="date" id="date_from" name="date_from">
                     </div>
-
                     <div class="form-group">
                         <label for="date_to">Til dato</label>
                         <input type="date" id="date_to" name="date_to">
                     </div>
                 </div>
-
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Opdater destination</button>
-                    <button type="button" id="delete-btn" class="btn btn-danger" style="display: none;">Slet</button>
-                    <a href="index.html" class="btn">Annuller</a>
+                    <button type="submit" class="btn btn-primary">Opdater</button>
+                    {% if logged_in %}
+                    <button type="button" id="delete-btn" class="btn btn-danger">Slet</button>
+                    {% endif %}
+                    <a href="{{ url_for('index') }}" class="btn">Annuller</a>
                 </div>
             </form>
         </div>
     </main>
-
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/destination.js"></script>
+    <script>
+        window.loggedIn = {{ 'true' if logged_in else 'false' }};
+        window.destinationId = {{ request.view_args.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/destination.js') }}"></script>
 </body>
 </html>
