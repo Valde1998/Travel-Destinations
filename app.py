@@ -47,7 +47,7 @@ class TravelDestination(db.Model):
     date_from = db.Column(db.String(20))
     date_to = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 def init_db():
     for i in range(5):
@@ -86,7 +86,9 @@ def destination_page(id):
 
 @app.route('/api/destinations', methods=['GET'])
 def get_destinations():
-    dests = TravelDestination.query.all()
+    if 'user_id' not in session:
+        return jsonify([])
+    dests = TravelDestination.query.filter_by(user_id=session['user_id']).all()
     return jsonify([{
         'id': d.id, 'title': d.title, 'location': d.location,
         'country': d.country, 'date_from': d.date_from, 'date_to': d.date_to
@@ -95,6 +97,8 @@ def get_destinations():
 @app.route('/api/destinations/<int:id>', methods=['GET'])
 def get_destination(id):
     d = TravelDestination.query.get_or_404(id)
+    if 'user_id' not in session or d.user_id != session['user_id']:
+        return jsonify({'error': 'Not authorized'}), 403
     return jsonify({
         'id': d.id, 'title': d.title, 'description': d.description,
         'location': d.location, 'country': d.country,
@@ -127,6 +131,8 @@ def update_destination(id):
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     d = TravelDestination.query.get_or_404(id)
+    if d.user_id != session['user_id']:
+        return jsonify({'error': 'You can only update your own destinations'}), 403
     data = request.json
     if not data.get('title'):
         return jsonify({'error': 'Title is required'}), 400
@@ -148,6 +154,8 @@ def delete_destination(id):
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     d = TravelDestination.query.get_or_404(id)
+    if d.user_id != session['user_id']:
+        return jsonify({'error': 'You can only delete your own destinations'}), 403
     try:
         db.session.delete(d)
         db.session.commit()

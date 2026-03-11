@@ -1,26 +1,26 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadDestination();
-    if (isLoggedIn()) {
-        document.getElementById('delete-btn')?.addEventListener('click', confirmDelete);
-    }
-    document.getElementById('destination-form').addEventListener('submit', handleUpdate);
-});
-
-async function loadDestination() {
     try {
-        const d = await getDestination(window.destinationId);
-        document.getElementById('destination-id').value = d.id;
-        document.getElementById('title').value = d.title || '';
-        document.getElementById('description').value = d.description || '';
-        document.getElementById('location').value = d.location || '';
-        document.getElementById('country').value = d.country || '';
-        document.getElementById('date_from').value = d.date_from || '';
-        document.getElementById('date_to').value = d.date_to || '';
-        document.getElementById('form-title').textContent = `Rediger: ${d.title}`;
+        await loadDestination();
+        if (isLoggedIn()) {
+            document.getElementById('delete-btn')?.addEventListener('click', confirmDelete);
+        }
+        document.getElementById('destination-form').addEventListener('submit', handleUpdate);
     } catch (error) {
         alert('Fejl: ' + error.message);
         window.location.href = '/';
     }
+});
+
+async function loadDestination() {
+    const d = await getDestination(window.destinationId);
+    document.getElementById('destination-id').value = d.id;
+    document.getElementById('title').value = d.title || '';
+    document.getElementById('description').value = d.description || '';
+    document.getElementById('location').value = d.location || '';
+    document.getElementById('country').value = d.country || '';
+    document.getElementById('date_from').value = d.date_from || '';
+    document.getElementById('date_to').value = d.date_to || '';
+    document.getElementById('form-title').textContent = `Rediger: ${d.title}`;
 }
 
 async function handleUpdate(e) {

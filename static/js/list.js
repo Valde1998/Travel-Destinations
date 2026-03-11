@@ -33,6 +33,10 @@ async function deleteFromList(id) {
     try {
         await deleteDestination(id);
         document.querySelector(`.destination-card[data-id="${id}"]`).remove();
+        const list = document.getElementById('destinations-list');
+        if (list.children.length === 0) {
+            list.innerHTML = '<p>Ingen destinationer endnu.</p>';
+        }
     } catch (error) {
         alert('Fejl: ' + error.message);
     }
